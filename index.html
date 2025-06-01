@@ -428,7 +428,7 @@
     <div class="imageAbove"><img src="https://i.pinimg.com/736x/c2/5c/1e/c25c1e075a20aa4b40dc92d3d685c0bb.jpg" alt="logo" /></div>
     <div class="title" id="mainTitle"></div>
     <div class="searchContainer">
-      <input class="searchBar" id="searchBar" placeholder="Search games or enter URL..." />
+      <input class="searchBar" id="searchBar" placeholder="Search web, games, or enter URL..." />
       <button class="searchClear" id="searchClear" onclick="clearSearch()">×</button>
     </div>
   </div>
@@ -782,6 +782,44 @@
     const searchBar = document.getElementById('searchBar');
     const searchClear = document.getElementById('searchClear');
     
+    // Function to handle search execution
+    function executeSearch(searchTerm) {
+      if (!searchTerm) return;
+      
+      // Check if it's a URL
+      const isUrl = searchTerm.startsWith('http://') || searchTerm.startsWith('https://');
+      
+      if (isUrl) {
+        openGame(searchTerm, 'Custom URL');
+        return;
+      }
+      
+      // If on home section and not a URL, perform web search via Startpage
+      if (currentSection === 'home') {
+        const startpageUrl = `https://www.startpage.com/sp/search?query=${encodeURIComponent(searchTerm)}`;
+        openGame(startpageUrl, `Search: ${searchTerm}`);
+        return;
+      }
+      
+      // Filter games based on search (when in games section)
+      if (currentSection === 'games') {
+        let baseGames = games;
+        if (currentFilter !== 'all') {
+          if (currentFilter === 'favorites') {
+            baseGames = games.filter(game => favorites.includes(game.name));
+          } else {
+            baseGames = games.filter(game => game.category === currentFilter);
+          }
+        }
+        
+        filteredGames = baseGames.filter(game => 
+          game.name.toLowerCase().includes(searchTerm)
+        );
+        loadGames();
+      }
+    }
+    
+    // Handle input events for real-time filtering
     searchBar.addEventListener('input', function() {
       const searchTerm = this.value.toLowerCase().trim();
       const clearBtn = document.getElementById('searchClear');
@@ -789,32 +827,24 @@
       if (searchTerm) {
         clearBtn.style.display = 'block';
         
-        // Check if it's a URL
-        if (searchTerm.startsWith('http://') || searchTerm.startsWith('https://')) {
-          openGame(searchTerm, 'Custom URL');
-          return;
-        }
-        
-        // Filter games based on search
+        // Only filter games in real-time when in games section
         if (currentSection === 'games') {
-          let baseGames = games;
-          if (currentFilter !== 'all') {
-            if (currentFilter === 'favorites') {
-              baseGames = games.filter(game => favorites.includes(game.name));
-            } else {
-              baseGames = games.filter(game => game.category === currentFilter);
-            }
-          }
-          
-          filteredGames = baseGames.filter(game => 
-            game.name.toLowerCase().includes(searchTerm)
-          );
-          loadGames();
+          executeSearch(searchTerm);
         }
       } else {
         clearBtn.style.display = 'none';
         if (currentSection === 'games') {
           filterGames(currentFilter);
+        }
+      }
+    });
+    
+    // Handle Enter key for search execution
+    searchBar.addEventListener('keypress', function(event) {
+      if (event.key === 'Enter') {
+        const searchTerm = this.value.trim();
+        if (searchTerm) {
+          executeSearch(searchTerm.toLowerCase());
         }
       }
     });
